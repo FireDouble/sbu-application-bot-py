@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from utils.constants import JR_MOD_ID, MOD_ID, INVITE_CHANNEL
-from utils.schemas.WarnedMember import WarnedMember
+from utils.schemas.WarnSchema import WarnSchema
 
 import humanfriendly
 import sqlite3
@@ -105,7 +105,7 @@ class Mod(commands.Cog):
     async def warn(self, ctx: commands.Context, member: discord.Member, *, reason=None):
         member_id = member.id
 
-        db = sqlite3.connect(WarnedMember.DB_PATH + WarnedMember.DB_NAME + '.db')
+        db = sqlite3.connect(WarnSchema.DB_PATH + WarnSchema.DB_NAME + '.db')
         cursor = db.cursor()
 
         time = int(datetime.datetime.now().timestamp())
@@ -116,18 +116,10 @@ class Mod(commands.Cog):
             warn_id += 1
 
 
-        warn = WarnedMember(member_id, ctx.guild.id, reason, ctx.author.id, time, warn_id)
+        warn = WarnSchema(member_id, ctx.guild.id, reason, ctx.author.id, time, warn_id)
 
         cursor.execute(*(warn.insert()))
         db.commit()
-
-        cursor.execute(f'''SELECT * FROM "WARNS" WHERE guild={ctx.guild.id} AND member={member_id}''')
-
-        warns = []
-        for warn in cursor.fetchall():
-            warns.append(warn)
-
-        print(warns)
 
         db.close()
 
@@ -137,7 +129,7 @@ class Mod(commands.Cog):
     @commands.command()
     @commands.has_role(JR_MOD_ID)
     async def infractions(self, ctx: commands.Context, member: discord.Member):
-        db = sqlite3.connect(WarnedMember.DB_PATH + WarnedMember.DB_NAME + '.db')
+        db = sqlite3.connect(WarnSchema.DB_PATH + WarnSchema.DB_NAME + '.db')
         cursor = db.cursor()
 
         cursor.execute(f'''SELECT * FROM "WARNS" WHERE guild={ctx.guild.id} AND member={member.id}''')
@@ -147,7 +139,7 @@ class Mod(commands.Cog):
         for warn in cursor.fetchall():
             if num == 10:
                 break
-            warn = WarnedMember.dict_from_tuple(warn)
+            warn = WarnSchema.dict_from_tuple(warn)
             warns += f"**{warn['reason']}** - <t:{warn['time']}:R> ID: {warn['id']}\n"
             num += 1;
         
@@ -164,7 +156,7 @@ class Mod(commands.Cog):
     @commands.command()
     @commands.has_role(MOD_ID)
     async def del_warn(self, ctx: commands.Context, member: discord.Member, warn_id: int):
-        db = sqlite3.connect(WarnedMember.DB_PATH + WarnedMember.DB_NAME + '.db')
+        db = sqlite3.connect(WarnSchema.DB_PATH + WarnSchema.DB_NAME + '.db')
         cursor = db.cursor()
 
         cursor.execute(f'''SELECT rowid FROM "WARNS" WHERE guild = {ctx.guild.id} AND member = {member.id} AND id = {warn_id}''')
@@ -179,6 +171,17 @@ class Mod(commands.Cog):
         db.commit()
 
         await ctx.reply("Successfuly removed this warn")
+    
+    @commands.command()
+    @commands.has_role(JR_MOD_ID)
+    async def clear(self, ctx: commands.Context, amount: int):
+        if amount is None:
+            amount = 5
+        elif amount > 30:
+            await ctx.reply("You can only delete 30 messages at once!")
+            return        
+        deleted = await ctx.channel.purge(limit=amount+1)
+        await ctx.channel.send(f"Deleted {len(deleted)-1} messages", delete_after=3)
 
 
 

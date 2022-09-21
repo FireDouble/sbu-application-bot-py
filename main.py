@@ -1,6 +1,5 @@
 import os
 import random
-import requests
 
 import discord
 import discord.utils

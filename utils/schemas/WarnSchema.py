@@ -2,17 +2,17 @@ import time
 
 from typing import TypedDict
 
-from utils.schemas.SchemaAbstract import Schema
+from utils.schemas import SchemaAbstract
 
-class WarnedMemberInfo(TypedDict):
+class WarnInfo(TypedDict):
     member: int
     reason: str
     moderator: int
     time: int
 
-class WarnedMember(Schema):
+class WarnSchema(SchemaAbstract.Schema):
     
-    DB_NAME = 'warns'
+    DB_NAME = 'Warns'
 
     def __init__(self, member: int, guild: int, reason: str, moderator: int, time: int, warn_id: int):
         self.member = member
@@ -23,7 +23,6 @@ class WarnedMember(Schema):
         self.id = warn_id
     
     def insert(self) -> (str, dict):
-        
         return '''
             INSERT
             INTO WARNS
@@ -59,7 +58,7 @@ class WarnedMember(Schema):
         '''
     
     @staticmethod
-    def dict_from_tuple(query_res) -> WarnedMemberInfo:
+    def dict_from_tuple(query_res) -> WarnInfo:
         return {
             "member": query_res[0],
             "guild": query_res[1],
